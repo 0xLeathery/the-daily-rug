@@ -55,8 +55,8 @@ The IDL is at [`idl/burn_for_article.json`](./idl/burn_for_article.json).
 
 ```bash
 # Clone and build
-git clone https://github.com/YOUR_ORG/TMZolana
-cd TMZolana/anchor
+git clone https://github.com/YOUR_ORG/the-daily-rug
+cd the-daily-rug/anchor
 anchor build
 
 # Run tests against a local validator

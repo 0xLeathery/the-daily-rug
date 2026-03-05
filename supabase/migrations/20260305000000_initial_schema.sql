@@ -1,5 +1,5 @@
 -- =============================================================================
--- TMZolana Initial Schema Migration
+-- The Daily Rug Initial Schema Migration
 -- Created: 2026-03-05
 -- =============================================================================
 -- Tables: profiles, articles, api_keys, processed_webhooks
@@ -37,7 +37,7 @@ CREATE INDEX idx_profiles_role ON public.profiles(role);
 COMMENT ON TABLE public.profiles IS 'User profiles linked to Supabase auth.users. Holds RBAC role and display metadata.';
 
 
--- articles: the core content table for TMZolana news articles
+-- articles: the core content table for The Daily Rug news articles
 CREATE TABLE public.articles (
   id                UUID        NOT NULL DEFAULT gen_random_uuid(),
   title             TEXT        NOT NULL,
