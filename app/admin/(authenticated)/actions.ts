@@ -147,7 +147,7 @@ export async function publishArticle(id: string, burnPrice: number) {
     throw new Error('Burn price must be greater than 0')
   }
 
-  const published_at = new Date().toISOString()
+  const published_at = new Date(Date.now()).toISOString()
   const alpha_gate_until = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
 
   const { data, error } = await supabase

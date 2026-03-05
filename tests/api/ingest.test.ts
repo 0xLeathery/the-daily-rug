@@ -88,7 +88,7 @@ describe('POST /api/v1/ingest', () => {
 
   test('returns 401 when no bearer token provided', async () => {
     const mockClient = makeAdminClient({ validateApiKeyResult: [], insertResult: null })
-    vi.mocked(createAdminClient).mockReturnValue(mockClient as ReturnType<typeof createAdminClient>)
+    vi.mocked(createAdminClient).mockReturnValue(mockClient as unknown as ReturnType<typeof createAdminClient>)
 
     const request = makeRequest({ authorization: undefined })
     const response = await POST(request)
@@ -101,7 +101,7 @@ describe('POST /api/v1/ingest', () => {
   test('returns 401 when invalid bearer token provided', async () => {
     // Validate API key returns empty array — invalid token
     const mockClient = makeAdminClient({ validateApiKeyResult: [], insertResult: null })
-    vi.mocked(createAdminClient).mockReturnValue(mockClient as ReturnType<typeof createAdminClient>)
+    vi.mocked(createAdminClient).mockReturnValue(mockClient as unknown as ReturnType<typeof createAdminClient>)
 
     // "short" is only 5 chars — route rejects tokens < 8 chars before hitting DB
     const request = makeRequest({ authorization: 'Bearer short' })
@@ -126,7 +126,7 @@ describe('POST /api/v1/ingest', () => {
 
     const validKeyRow = [{ is_valid: true, profile_id: 'agent-profile-123', key_id: 'key-1' }]
     const mockClient = makeAdminClient({ validateApiKeyResult: validKeyRow, insertResult: mockArticle })
-    vi.mocked(createAdminClient).mockReturnValue(mockClient as ReturnType<typeof createAdminClient>)
+    vi.mocked(createAdminClient).mockReturnValue(mockClient as unknown as ReturnType<typeof createAdminClient>)
 
     const request = makeRequest({
       // Token is >= 8 chars and DB validates it
@@ -156,7 +156,7 @@ describe('POST /api/v1/ingest', () => {
 
     const validKeyRow = [{ is_valid: true, profile_id: 'agent-profile-123', key_id: 'key-1' }]
     const mockClient = makeAdminClient({ validateApiKeyResult: validKeyRow, insertResult: mockArticle })
-    vi.mocked(createAdminClient).mockReturnValue(mockClient as ReturnType<typeof createAdminClient>)
+    vi.mocked(createAdminClient).mockReturnValue(mockClient as unknown as ReturnType<typeof createAdminClient>)
 
     const request = makeRequest({
       authorization: 'Bearer valid-api-token-abc123',
@@ -186,7 +186,7 @@ describe('POST /api/v1/ingest', () => {
 
     const validKeyRow = [{ is_valid: true, profile_id: 'agent-profile-123', key_id: 'key-1' }]
     const mockClient = makeAdminClient({ validateApiKeyResult: validKeyRow, insertResult: mockArticle })
-    vi.mocked(createAdminClient).mockReturnValue(mockClient as ReturnType<typeof createAdminClient>)
+    vi.mocked(createAdminClient).mockReturnValue(mockClient as unknown as ReturnType<typeof createAdminClient>)
 
     const request = makeRequest({
       authorization: 'Bearer valid-api-token-abc123',
