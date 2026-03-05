@@ -8,6 +8,9 @@ skip-lint = false
 [programs.localnet]
 burn_for_article = "DPJfqPk8yu6Fzu2aUQLY2DvFCPmhJ4zkZa2G8ZjKNeQW"
 
+[programs.devnet]
+burn_for_article = "DPJfqPk8yu6Fzu2aUQLY2DvFCPmhJ4zkZa2G8ZjKNeQW"
+
 [registry]
 url = "https://api.apr.dev"
 
