@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { Article, Profile } from '@/lib/supabase/types'
 
@@ -37,6 +37,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function ArticleTable({ articles }: ArticleTableProps) {
+  const router = useRouter()
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all')
 
   const totalCount = articles.length
@@ -109,15 +110,13 @@ export default function ArticleTable({ articles }: ArticleTableProps) {
               {filteredArticles.map((article) => (
                 <tr
                   key={article.id}
-                  className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors"
+                  onClick={() => router.push(`/admin/articles/${article.id}`)}
+                  className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors cursor-pointer"
                 >
                   <td className="py-2 px-3">
-                    <Link
-                      href={`/admin/articles/${article.id}`}
-                      className="text-brand-white hover:text-brand-yellow transition-colors font-medium"
-                    >
+                    <span className="text-brand-white hover:text-brand-yellow transition-colors font-medium">
                       {article.title || '(untitled)'}
-                    </Link>
+                    </span>
                   </td>
                   <td className="py-2 px-3">
                     <span
