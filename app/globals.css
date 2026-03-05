@@ -36,3 +36,26 @@ body {
 .wallet-adapter-button:hover {
   background-color: #ff1a1a !important;
 }
+
+/* Burn destruction animation — Phase 6 */
+@keyframes burn-glitch {
+  0%, 100% { transform: translate(0); filter: contrast(1) saturate(1); }
+  10% { transform: translate(-4px, 2px); filter: contrast(2) saturate(0); }
+  20% { transform: translate(4px, -2px); filter: contrast(1.5) saturate(0.5); }
+  30% { transform: translate(-2px, -4px); filter: contrast(2) saturate(0); }
+  40% { transform: translate(2px, 4px); filter: contrast(1) saturate(1); }
+  50% { transform: translate(-4px, 0); filter: contrast(2.5) saturate(0); }
+  60% { transform: translate(4px, 2px); filter: contrast(1) saturate(0.5); }
+  70% { transform: translate(0, -4px); filter: contrast(2) saturate(0); }
+  80% { transform: translate(-2px, 2px); filter: contrast(1.5) saturate(0.5); }
+  90% { transform: translate(2px, -2px); filter: contrast(2) saturate(0); }
+}
+@keyframes burn-flash {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes burn-reveal {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
