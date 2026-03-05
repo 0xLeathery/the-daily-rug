@@ -10,7 +10,13 @@
  */
 export function uuidToBytes(uuid: string): number[] {
   const hex = uuid.replace(/-/g, '')
-  return Array.from(Buffer.from(hex, 'hex'))
+  const bytes = Array.from(Buffer.from(hex, 'hex'))
+  if (bytes.length !== 16) {
+    throw new Error(
+      `uuidToBytes: expected 16 bytes but got ${bytes.length} — input may not be a valid UUID`
+    )
+  }
+  return bytes
 }
 
 /**
@@ -18,6 +24,11 @@ export function uuidToBytes(uuid: string): number[] {
  * Inserts hyphens at positions 8-4-4-4-12.
  */
 export function bytesToUUID(bytes: number[]): string {
+  if (bytes.length !== 16) {
+    throw new Error(
+      `bytesToUUID: expected 16 bytes but got ${bytes.length}`
+    )
+  }
   const hex = Buffer.from(bytes).toString('hex')
   return (
     `${hex.slice(0, 8)}-` +
