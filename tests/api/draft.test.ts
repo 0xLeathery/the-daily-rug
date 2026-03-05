@@ -85,7 +85,7 @@ describe('POST /api/ai/draft', () => {
   test('returns 401 when user is not authenticated', async () => {
     // No authenticated user
     vi.mocked(createClient).mockResolvedValue(
-      makeSupabaseClient({ user: null }) as ReturnType<typeof createClient> extends Promise<infer T> ? T : never
+      makeSupabaseClient({ user: null }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
     const request = makeRequest({ body: { topic: 'Solana drama' } })
@@ -99,7 +99,7 @@ describe('POST /api/ai/draft', () => {
   test('returns 400 when topic is missing', async () => {
     // Authenticated user but no topic
     vi.mocked(createClient).mockResolvedValue(
-      makeSupabaseClient({ user: { id: 'user-123' } }) as ReturnType<typeof createClient> extends Promise<infer T> ? T : never
+      makeSupabaseClient({ user: { id: 'user-123' } }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
     const request = makeRequest({ body: {} })
@@ -112,7 +112,7 @@ describe('POST /api/ai/draft', () => {
 
   test('returns 400 when topic is empty string', async () => {
     vi.mocked(createClient).mockResolvedValue(
-      makeSupabaseClient({ user: { id: 'user-123' } }) as ReturnType<typeof createClient> extends Promise<infer T> ? T : never
+      makeSupabaseClient({ user: { id: 'user-123' } }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
     const request = makeRequest({ body: { topic: '' } })
@@ -125,7 +125,7 @@ describe('POST /api/ai/draft', () => {
 
   test('returns 200 with streaming text/plain response for authenticated user with valid topic', async () => {
     vi.mocked(createClient).mockResolvedValue(
-      makeSupabaseClient({ user: { id: 'user-123' } }) as ReturnType<typeof createClient> extends Promise<infer T> ? T : never
+      makeSupabaseClient({ user: { id: 'user-123' } }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
     // Configure Anthropic mock to return a streaming iterator
@@ -141,7 +141,7 @@ describe('POST /api/ai/draft', () => {
 
   test('streaming response body contains text chunks from Anthropic', async () => {
     vi.mocked(createClient).mockResolvedValue(
-      makeSupabaseClient({ user: { id: 'user-123' } }) as ReturnType<typeof createClient> extends Promise<infer T> ? T : never
+      makeSupabaseClient({ user: { id: 'user-123' } }) as unknown as Awaited<ReturnType<typeof createClient>>
     )
 
     mockAnthropicCreate.mockResolvedValue(makeStreamIterator(['GM ser, ', 'WAGMI news']))

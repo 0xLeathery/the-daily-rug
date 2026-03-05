@@ -5,6 +5,7 @@ import type { Article, UserRole, ArticleStatus } from '@/lib/supabase/types'
 import { saveArticle, publishArticle, unpublishArticle } from '@/app/admin/(authenticated)/actions'
 import CoverImageUpload from './CoverImageUpload'
 import RichTextEditor, { type RichTextEditorRef } from './RichTextEditor'
+import AIDraftPanel from './AIDraftPanel'
 
 interface ArticleEditorProps {
   article: Article | null
@@ -62,6 +63,13 @@ export default function ArticleEditor({ article, userRole }: ArticleEditorProps)
     burnPriceNum > 0 &&
     savedArticle !== null &&
     savedArticle.id !== undefined
+
+  function handleDraftGenerated(html: string) {
+    // Inject draft into Tiptap editor
+    richTextEditorRef.current?.setContent(html)
+    // Also update body state so save picks up the new content
+    setBody(html)
+  }
 
   function handleSave() {
     setSaveError(null)
@@ -132,6 +140,11 @@ export default function ArticleEditor({ article, userRole }: ArticleEditorProps)
 
       {/* Cover Image */}
       <CoverImageUpload imageUrl={coverImageUrl} onUpload={setCoverImageUrl} />
+
+      {/* AI Draft Panel — admin only */}
+      {userRole === 'admin' && (
+        <AIDraftPanel onDraftGenerated={handleDraftGenerated} currentBody={body} />
+      )}
 
       {/* Body */}
       <div>
