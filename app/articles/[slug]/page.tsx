@@ -4,6 +4,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { getArticleBySlug } from '@/lib/supabase/articles'
 import { ArticleGate } from '@/components/public/ArticleGate'
+import { ArticleLiveWrapper } from '@/components/public/ArticleLiveWrapper'
+import { truncateAddress, formatBalance } from '@/lib/utils/format'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -61,6 +63,11 @@ export default async function ArticlePage({ params }: Props) {
           <p className="text-brand-white/70 font-mono text-lg mb-8">
             This story was silenced by a whale.
           </p>
+          {article.burned_by && (
+            <p className="text-brand-white/50 font-mono text-sm mt-4 mb-8">
+              Burned by {truncateAddress(article.burned_by)} for {formatBalance(article.burned_amount ?? 0)} tokens
+            </p>
+          )}
           <Link
             href="/"
             className="text-brand-yellow font-mono text-sm hover:underline"
@@ -110,16 +117,25 @@ export default async function ArticlePage({ params }: Props) {
           {publishedDate && <span>{publishedDate}</span>}
         </div>
 
-        {/* Gated article body */}
-        <ArticleGate
-          alphaGateUntil={article.alpha_gate_until}
+        {/* Gated article body with live burn integration */}
+        <ArticleLiveWrapper
+          articleId={article.id}
+          articleTitle={article.title}
           articleStatus={article.status}
+          burnPrice={article.burn_price}
+          burnedBy={article.burned_by}
+          burnedAmount={article.burned_amount}
         >
-          <div
-            className="prose prose-invert font-mono max-w-none"
-            dangerouslySetInnerHTML={{ __html: article.body || '' }}
-          />
-        </ArticleGate>
+          <ArticleGate
+            alphaGateUntil={article.alpha_gate_until}
+            articleStatus={article.status}
+          >
+            <div
+              className="prose prose-invert font-mono max-w-none"
+              dangerouslySetInnerHTML={{ __html: article.body || '' }}
+            />
+          </ArticleGate>
+        </ArticleLiveWrapper>
       </div>
     </main>
   )
