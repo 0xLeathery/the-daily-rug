@@ -56,6 +56,36 @@ describe('burn utilities', () => {
     })
   })
 
+  describe('edge cases', () => {
+    describe('uuidToBytes invalid inputs', () => {
+      test('throws on non-UUID string', () => {
+        expect(() => uuidToBytes('not-a-uuid')).toThrow(/16 bytes|invalid/i)
+      })
+
+      test('throws on short string', () => {
+        expect(() => uuidToBytes('short')).toThrow()
+      })
+
+      test('throws on empty string', () => {
+        expect(() => uuidToBytes('')).toThrow()
+      })
+    })
+
+    describe('bytesToUUID invalid inputs', () => {
+      test('throws on empty array', () => {
+        expect(() => bytesToUUID([])).toThrow(/16 bytes/i)
+      })
+
+      test('throws on array shorter than 16 bytes', () => {
+        expect(() => bytesToUUID([1, 2, 3])).toThrow(/16 bytes/i)
+      })
+
+      test('throws on array longer than 16 bytes', () => {
+        expect(() => bytesToUUID(new Array(32).fill(0))).toThrow(/16 bytes/i)
+      })
+    })
+  })
+
   describe('constants', () => {
     test('BURN_ELIGIBILITY_THRESHOLD equals 100_000', () => {
       expect(BURN_ELIGIBILITY_THRESHOLD).toBe(100_000)
