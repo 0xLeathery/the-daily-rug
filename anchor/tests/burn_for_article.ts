@@ -22,6 +22,7 @@ describe("burn_for_article", () => {
   let articleId: number[];
   let articleBurnPda: PublicKey;
   let happyPathTxSig: string;
+  let burnConfigPda: PublicKey;
 
   // 100K tokens with 6 decimals = 100_000 * 10^6 raw units
   const HUNDRED_K_RAW = new anchor.BN(100_000 * 1_000_000);
@@ -69,6 +70,23 @@ describe("burn_for_article", () => {
       [Buffer.from("article_burn"), Buffer.from(articleId)],
       program.programId
     );
+
+    // Derive BurnConfig PDA
+    [burnConfigPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("burn_config")],
+      program.programId
+    );
+
+    // Initialize BurnConfig — pins the correct mint and sets min burn amount
+    await program.methods
+      .initializeConfig(HUNDRED_K_RAW)
+      .accounts({
+        admin: provider.wallet.publicKey,
+        burnConfig: burnConfigPda,
+        allowedMint: mintPubkey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc({ skipPreflight: true, commitment: "confirmed" });
   });
 
   it("Test 1: burns tokens and creates PDA record (happy path)", async () => {
@@ -85,6 +103,7 @@ describe("burn_for_article", () => {
         burner: provider.wallet.publicKey,
         burnerTokenAccount: burnerAta,
         mint: mintPubkey,
+        burnConfig: burnConfigPda,
         articleBurnRecord: articleBurnPda,
         tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -185,6 +204,7 @@ describe("burn_for_article", () => {
           burner: provider.wallet.publicKey,
           burnerTokenAccount: burnerAta,
           mint: mintPubkey,
+          burnConfig: burnConfigPda,
           articleBurnRecord: articleBurnPda,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -261,6 +281,7 @@ describe("burn_for_article", () => {
           burner: poorWallet.publicKey,
           burnerTokenAccount: poorWalletAta.address,
           mint: mintPubkey,
+          burnConfig: burnConfigPda,
           articleBurnRecord: differentPda,
           tokenProgram: TOKEN_PROGRAM_ID,
           associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,

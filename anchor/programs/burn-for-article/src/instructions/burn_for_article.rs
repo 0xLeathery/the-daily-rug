@@ -4,16 +4,15 @@ use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount};
 
 use crate::errors::BurnError;
 use crate::state::ArticleBurnRecord;
+use crate::state::BurnConfig;
 use crate::ArticleKilled;
 
 #[derive(Accounts)]
 #[instruction(article_id: [u8; 16])]
 pub struct BurnForArticle<'info> {
-    /// The wallet initiating the burn (pays for PDA rent)
     #[account(mut)]
     pub burner: Signer<'info>,
 
-    /// Caller's token account - must hold >= 100K tokens
     #[account(
         mut,
         associated_token::mint = mint,
@@ -23,11 +22,17 @@ pub struct BurnForArticle<'info> {
     )]
     pub burner_token_account: Account<'info, TokenAccount>,
 
-    /// The SPL token mint being burned
     #[account(mut)]
     pub mint: Account<'info, Mint>,
 
-    /// PDA keyed to article_id - prevents double-burn via init constraint
+    /// BurnConfig PDA — validates allowed mint and minimum burn amount
+    #[account(
+        seeds = [b"burn_config"],
+        bump = burn_config.bump,
+        constraint = mint.key() == burn_config.allowed_mint @ BurnError::InvalidMint,
+    )]
+    pub burn_config: Account<'info, BurnConfig>,
+
     #[account(
         init,
         payer = burner,
@@ -43,6 +48,12 @@ pub struct BurnForArticle<'info> {
 }
 
 pub fn handler(ctx: Context<BurnForArticle>, article_id: [u8; 16], amount: u64) -> Result<()> {
+    // Validate burn amount meets minimum
+    require!(
+        amount >= ctx.accounts.burn_config.min_burn_amount,
+        BurnError::BurnAmountTooLow
+    );
+
     // 1. Burn tokens via CPI to the SPL Token Program
     let cpi_ctx = CpiContext::new(
         ctx.accounts.token_program.to_account_info(),
