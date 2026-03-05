@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Oswald, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SolanaProvider from "@/components/providers/SolanaProvider";
@@ -51,6 +52,7 @@ export default function RootLayout({
           <DisclaimerModal />
           {children}
           <SiteFooter />
+          <Analytics />
         </SolanaProvider>
       </body>
     </html>
