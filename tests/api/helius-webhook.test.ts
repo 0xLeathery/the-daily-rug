@@ -3,20 +3,31 @@ import { describe, test, expect, vi, beforeEach } from 'vitest'
 // Bypass server-only import guard — must be before any route imports
 vi.mock('server-only', () => ({}))
 
-// Mock @coral-xyz/anchor EventParser + BorshCoder
-// We control what parseLogs returns so we don't need real base64 Anchor data
-const mockParseLogs = vi.fn()
+// Use vi.hoisted so mockParseLogs is available inside the hoisted vi.mock factory
+const { mockParseLogs } = vi.hoisted(() => ({
+  mockParseLogs: vi.fn(),
+}))
 
+// Mock @coral-xyz/anchor EventParser + BorshCoder
+// Must use class/function constructors (not arrow functions) for `new` compatibility
 vi.mock('@coral-xyz/anchor', () => ({
-  EventParser: vi.fn().mockImplementation(() => ({
-    parseLogs: mockParseLogs,
-  })),
-  BorshCoder: vi.fn().mockImplementation(() => ({})),
+  EventParser: class EventParser {
+    parseLogs: ReturnType<typeof vi.fn>
+    constructor() { this.parseLogs = mockParseLogs }
+  },
+  BorshCoder: class BorshCoder {
+    constructor() {}
+  },
 }))
 
 // Mock @solana/web3.js PublicKey — only used for PROGRAM_ID constant at module level
+// Must use a class or function constructor (not arrow function) per Vitest mock requirements
 vi.mock('@solana/web3.js', () => ({
-  PublicKey: vi.fn().mockImplementation((addr: string) => ({ toBase58: () => addr })),
+  PublicKey: class PublicKey {
+    private addr: string
+    constructor(addr: string) { this.addr = addr }
+    toBase58() { return this.addr }
+  },
 }))
 
 // Mock the IDL import
