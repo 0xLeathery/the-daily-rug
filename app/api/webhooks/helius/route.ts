@@ -38,6 +38,10 @@ export async function POST(request: Request): Promise<Response> {
   const body = await request.json()
   const transactions: HeliusTx[] = Array.isArray(body) ? body : [body]
 
+  // --- Per-tx error tracking for GAP-WH-02 ---
+  let processedCount = 0
+  let errorCount = 0
+
   // --- Process each transaction ---
   for (const tx of transactions) {
     const signature = tx.transaction?.signatures?.[0]
@@ -49,6 +53,18 @@ export async function POST(request: Request): Promise<Response> {
 
     // Skip if no ArticleKilled event in this transaction
     if (!killedEvent) {
+      continue
+    }
+
+    // GAP-WH-03 + GAP-WH-04: Validate required event fields before accessing them
+    // null/undefined article_id, burner, amount, or timestamp → skip tx gracefully
+    if (
+      !killedEvent.data.article_id ||
+      !killedEvent.data.burner ||
+      !killedEvent.data.amount ||
+      !killedEvent.data.timestamp
+    ) {
+      console.error('[helius-webhook] Missing required event fields, skipping tx:', signature)
       continue
     }
 
@@ -70,8 +86,9 @@ export async function POST(request: Request): Promise<Response> {
 
     if (insertError) {
       if ((insertError as { code?: string }).code === '23505') {
-        // Unique violation — already processed this transaction, silently accept
-        return new Response('Already processed', { status: 200 })
+        // GAP-WH-01: Unique violation — already processed this tx.
+        // Use `continue` (not `return`) so remaining txs in the batch are still processed.
+        continue
       }
       // Other insert errors — log and continue (non-blocking)
       console.error('[helius-webhook] processed_webhooks insert error:', insertError)
@@ -92,9 +109,19 @@ export async function POST(request: Request): Promise<Response> {
 
     if (updateError) {
       console.error('[helius-webhook] articles update error:', updateError)
-      // Return 500 so Helius retries delivery
-      return new Response('DB update failed', { status: 500 })
+      // GAP-WH-02: Track per-tx failure instead of returning 500 immediately.
+      // This allows successfully-processed txs to count even if later txs fail.
+      errorCount++
+      continue
     }
+
+    processedCount++
+  }
+
+  // GAP-WH-02: Only return 500 if ALL processable txs failed (triggers Helius retry).
+  // If at least one tx succeeded, return 200.
+  if (processedCount === 0 && errorCount > 0) {
+    return new Response('All updates failed', { status: 500 })
   }
 
   return new Response('OK', { status: 200 })
