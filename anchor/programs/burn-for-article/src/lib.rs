@@ -5,6 +5,7 @@ pub mod instructions;
 pub mod state;
 
 use instructions::burn_for_article::*;
+use instructions::initialize_config::*;
 
 declare_id!("DPJfqPk8yu6Fzu2aUQLY2DvFCPmhJ4zkZa2G8ZjKNeQW");
 
@@ -20,6 +21,13 @@ pub struct ArticleKilled {
 #[program]
 pub mod burn_for_article {
     use super::*;
+
+    pub fn initialize_config(
+        ctx: Context<InitializeConfig>,
+        min_burn_amount: u64,
+    ) -> Result<()> {
+        instructions::initialize_config::handler(ctx, min_burn_amount)
+    }
 
     pub fn burn_for_article(
         ctx: Context<BurnForArticle>,
