@@ -45,6 +45,14 @@ export async function POST(request: Request): Promise<Response> {
   // --- Process each transaction ---
   for (const tx of transactions) {
     const signature = tx.transaction?.signatures?.[0]
+
+    // INT-02: Skip transactions without a signature to prevent NOT NULL violation
+    // on processed_webhooks.webhook_id insert
+    if (!signature) {
+      console.warn('[helius-webhook] Skipping tx with missing signature')
+      continue
+    }
+
     const logMessages: string[] = tx.meta?.logMessages ?? []
 
     // Parse Anchor events from log messages

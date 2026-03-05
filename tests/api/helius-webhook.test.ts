@@ -513,4 +513,56 @@ describe('POST /api/webhooks/helius', () => {
     expect(response.status).toBe(200)
     expect(mockClient._mocks.updateMock).not.toHaveBeenCalled()
   })
+
+  // ---------------------------------------------------------------------------
+  // INT-02: Null-signature guard tests
+  // ---------------------------------------------------------------------------
+
+  test('skips tx with no signature (empty signatures array), returns 200, no DB calls', async () => {
+    // Include a valid ArticleKilled event to prove guard fires BEFORE event processing
+    const killedEvent = makeArticleKilledEvent()
+    mockParseLogs.mockReturnValue([killedEvent])
+
+    const mockClient = makeAdminClient({})
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    // tx with empty signatures array — signatures?.[0] is undefined
+    const txPayload = {
+      transaction: { signatures: [] },
+      meta: { logMessages: ['Program log: some log', 'Program data: base64encodeddata'] },
+    }
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [txPayload],
+    })
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+    // No DB calls at all — guard fires before event parsing
+    expect(mockClient._mocks.fromMock).not.toHaveBeenCalled()
+  })
+
+  test('skips tx with null transaction object, returns 200, no DB calls', async () => {
+    const mockClient = makeAdminClient({})
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    // Malformed tx with no transaction field at all
+    const txPayload = {
+      meta: { logMessages: ['Program data: somebase64'] },
+    }
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [txPayload],
+    })
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+    expect(mockClient._mocks.fromMock).not.toHaveBeenCalled()
+  })
 })
