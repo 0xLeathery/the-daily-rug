@@ -45,3 +45,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# internal planning — do not publish
+.planning/
+
+# local test validator data
+test-ledger/
+
+# playwright mcp logs
+.playwright-mcp/
+
+# misc artifacts
+wallet-modal.png
