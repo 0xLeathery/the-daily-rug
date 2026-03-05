@@ -662,4 +662,305 @@ describe("burn_for_article", () => {
       "amount in PDA should match the burn amount"
     );
   });
+
+  // ─── Bad Actor / Edge Case Tests ──────────────────────────────────────────
+
+  it("Test 12: front-running griefing — second wallet loses race on same article_id", async () => {
+    // Simulate an attacker front-running a legitimate burn by claiming the
+    // article_id PDA first. The victim's subsequent tx fails with
+    // AccountAlreadyInitialized. This is expected behavior: first burn wins.
+    const victim = Keypair.generate();
+    const attacker = Keypair.generate();
+
+    // Fund both wallets with SOL
+    for (const kp of [victim, attacker]) {
+      const bh = await provider.connection.getLatestBlockhash("confirmed");
+      const sig = await provider.connection.requestAirdrop(kp.publicKey, 2 * LAMPORTS_PER_SOL);
+      await provider.connection.confirmTransaction({ signature: sig, ...bh }, "confirmed");
+    }
+
+    // Give both wallets 200K tokens so balance constraint passes
+    for (const kp of [victim, attacker]) {
+      const ata = await getOrCreateAssociatedTokenAccount(
+        provider.connection,
+        (provider.wallet as anchor.Wallet).payer,
+        mintPubkey,
+        kp.publicKey
+      );
+      await mintTo(
+        provider.connection,
+        (provider.wallet as anchor.Wallet).payer,
+        mintPubkey,
+        ata.address,
+        provider.wallet.publicKey,
+        200_000 * 1_000_000
+      );
+    }
+
+    // Shared article_id — both wallets will try to burn this
+    const contestedId = Array.from(new Uint8Array(16).map((_, i) => i + 1));
+    const [contestedPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("article_burn"), Buffer.from(contestedId)],
+      program.programId
+    );
+
+    // Attacker burns first — succeeds
+    const attackerAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as anchor.Wallet).payer,
+      mintPubkey,
+      attacker.publicKey
+    );
+    const attackerProvider = new anchor.AnchorProvider(
+      provider.connection,
+      new anchor.Wallet(attacker),
+      { commitment: "confirmed" }
+    );
+    const attackerProgram = new Program(program.idl, attackerProvider);
+
+    await attackerProgram.methods
+      .burnForArticle(contestedId, HUNDRED_K_RAW)
+      .accounts({
+        burner: attacker.publicKey,
+        burnerTokenAccount: attackerAta.address,
+        mint: mintPubkey,
+        burnConfig: burnConfigPda,
+        articleBurnRecord: contestedPda,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc({ skipPreflight: true, commitment: "confirmed" });
+
+    // Victim tries the same article_id — must fail
+    const victimAta = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as anchor.Wallet).payer,
+      mintPubkey,
+      victim.publicKey
+    );
+    const victimProvider = new anchor.AnchorProvider(
+      provider.connection,
+      new anchor.Wallet(victim),
+      { commitment: "confirmed" }
+    );
+    const victimProgram = new Program(program.idl, victimProvider);
+
+    let didFail = false;
+    let caughtError: any = null;
+    try {
+      await victimProgram.methods
+        .burnForArticle(contestedId, HUNDRED_K_RAW)
+        .accounts({
+          burner: victim.publicKey,
+          burnerTokenAccount: victimAta.address,
+          mint: mintPubkey,
+          burnConfig: burnConfigPda,
+          articleBurnRecord: contestedPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc({ skipPreflight: true, commitment: "confirmed" });
+    } catch (err) {
+      didFail = true;
+      caughtError = err;
+    }
+
+    assert.isTrue(didFail, "Victim's burn on an already-claimed article_id should fail");
+    // Confirm the attacker's record is what's stored (not the victim's)
+    const record = await program.account.articleBurnRecord.fetch(contestedPda);
+    assert.equal(
+      record.burner.toBase58(),
+      attacker.publicKey.toBase58(),
+      "PDA should record the attacker (first burner), not the victim"
+    );
+  });
+
+  it("Test 13: burn amount exceeds wallet balance — SPL token program rejects it", async () => {
+    // Wallet has exactly 100K tokens (passes the >=100K balance constraint),
+    // but attempts to burn 200K. The SPL burn CPI must reject with insufficient funds.
+    const wallet = Keypair.generate();
+    const bh = await provider.connection.getLatestBlockhash("confirmed");
+    const sig = await provider.connection.requestAirdrop(wallet.publicKey, 2 * LAMPORTS_PER_SOL);
+    await provider.connection.confirmTransaction({ signature: sig, ...bh }, "confirmed");
+
+    const ata = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as anchor.Wallet).payer,
+      mintPubkey,
+      wallet.publicKey
+    );
+    // Mint exactly 100K — passes balance check but cannot burn 200K
+    await mintTo(
+      provider.connection,
+      (provider.wallet as anchor.Wallet).payer,
+      mintPubkey,
+      ata.address,
+      provider.wallet.publicKey,
+      100_000 * 1_000_000
+    );
+
+    const rawBytes = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) rawBytes[i] = Math.floor(Math.random() * 256);
+    const testArticleId = Array.from(rawBytes);
+    const [testPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("article_burn"), Buffer.from(testArticleId)],
+      program.programId
+    );
+
+    const walletProvider = new anchor.AnchorProvider(
+      provider.connection,
+      new anchor.Wallet(wallet),
+      { commitment: "confirmed" }
+    );
+    const walletProgram = new Program(program.idl, walletProvider);
+
+    let didFail = false;
+    try {
+      await walletProgram.methods
+        .burnForArticle(testArticleId, new anchor.BN(200_000 * 1_000_000)) // 200K > 100K held
+        .accounts({
+          burner: wallet.publicKey,
+          burnerTokenAccount: ata.address,
+          mint: mintPubkey,
+          burnConfig: burnConfigPda,
+          articleBurnRecord: testPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc({ skipPreflight: false, commitment: "confirmed" });
+    } catch (err) {
+      didFail = true;
+    }
+
+    assert.isTrue(didFail, "Burning more tokens than held should fail at SPL token program");
+
+    // Verify no tokens were burned — balance must still be 100K
+    const balanceAfter = (await getAccount(provider.connection, ata.address)).amount;
+    assert.equal(
+      balanceAfter,
+      BigInt(100_000 * 1_000_000),
+      "Token balance should be unchanged after failed burn"
+    );
+  });
+
+  it("Test 14: attacker cannot use another wallet's ATA as burnerTokenAccount", async () => {
+    // Attacker signs the transaction but passes the provider's ATA (which has
+    // tokens) as burnerTokenAccount. The associated_token::authority = burner
+    // constraint must reject it because the ATA's owner is not the attacker.
+    const attacker = Keypair.generate();
+    const bh = await provider.connection.getLatestBlockhash("confirmed");
+    const sig = await provider.connection.requestAirdrop(attacker.publicKey, 2 * LAMPORTS_PER_SOL);
+    await provider.connection.confirmTransaction({ signature: sig, ...bh }, "confirmed");
+
+    const rawBytes = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) rawBytes[i] = Math.floor(Math.random() * 256);
+    const testArticleId = Array.from(rawBytes);
+    const [testPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("article_burn"), Buffer.from(testArticleId)],
+      program.programId
+    );
+
+    const attackerProvider = new anchor.AnchorProvider(
+      provider.connection,
+      new anchor.Wallet(attacker),
+      { commitment: "confirmed" }
+    );
+    const attackerProgram = new Program(program.idl, attackerProvider);
+
+    let didFail = false;
+    try {
+      // Attacker signs as burner but passes provider's ATA (not their own)
+      await attackerProgram.methods
+        .burnForArticle(testArticleId, HUNDRED_K_RAW)
+        .accounts({
+          burner: attacker.publicKey,
+          burnerTokenAccount: burnerAta, // <-- provider's ATA, not attacker's
+          mint: mintPubkey,
+          burnConfig: burnConfigPda,
+          articleBurnRecord: testPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc({ skipPreflight: false, commitment: "confirmed" });
+    } catch (err) {
+      didFail = true;
+    }
+
+    assert.isTrue(
+      didFail,
+      "Using another wallet's ATA as burnerTokenAccount must be rejected"
+    );
+  });
+
+  it("Test 15: exact boundary — wallet with exactly 100K tokens burns exactly 100K (leaves zero balance)", async () => {
+    // Confirms the >=100K balance constraint is inclusive at the boundary and
+    // that a user can fully exhaust their eligible balance in a single burn.
+    const wallet = Keypair.generate();
+    const bh = await provider.connection.getLatestBlockhash("confirmed");
+    const sig = await provider.connection.requestAirdrop(wallet.publicKey, 2 * LAMPORTS_PER_SOL);
+    await provider.connection.confirmTransaction({ signature: sig, ...bh }, "confirmed");
+
+    const ata = await getOrCreateAssociatedTokenAccount(
+      provider.connection,
+      (provider.wallet as anchor.Wallet).payer,
+      mintPubkey,
+      wallet.publicKey
+    );
+    // Mint exactly 100K — the minimum required, no more
+    await mintTo(
+      provider.connection,
+      (provider.wallet as anchor.Wallet).payer,
+      mintPubkey,
+      ata.address,
+      provider.wallet.publicKey,
+      100_000 * 1_000_000
+    );
+
+    const rawBytes = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) rawBytes[i] = Math.floor(Math.random() * 256);
+    const testArticleId = Array.from(rawBytes);
+    const [testPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("article_burn"), Buffer.from(testArticleId)],
+      program.programId
+    );
+
+    const walletProvider = new anchor.AnchorProvider(
+      provider.connection,
+      new anchor.Wallet(wallet),
+      { commitment: "confirmed" }
+    );
+    const walletProgram = new Program(program.idl, walletProvider);
+
+    // Should succeed — exactly 100K held, burning exactly 100K
+    await walletProgram.methods
+      .burnForArticle(testArticleId, HUNDRED_K_RAW)
+      .accounts({
+        burner: wallet.publicKey,
+        burnerTokenAccount: ata.address,
+        mint: mintPubkey,
+        burnConfig: burnConfigPda,
+        articleBurnRecord: testPda,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc({ skipPreflight: true, commitment: "confirmed" });
+
+    const balanceAfter = (await getAccount(provider.connection, ata.address)).amount;
+    assert.equal(
+      balanceAfter,
+      BigInt(0),
+      "Token balance should be exactly zero after burning the full 100K"
+    );
+
+    const record = await program.account.articleBurnRecord.fetch(testPda);
+    assert.isTrue(
+      record.amount.eq(HUNDRED_K_RAW),
+      "PDA should record the full 100K burn amount"
+    );
+  });
 });
