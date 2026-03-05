@@ -128,6 +128,53 @@ function makeAdminClient(fromBehaviors: {
   }
 }
 
+/**
+ * Build a Supabase admin client mock that returns different results per tx call.
+ * insertResults: array of error values for successive insert calls
+ * updateResults: array of error values for successive update calls
+ */
+function makeMultiTxAdminClient({
+  insertResults,
+  updateResults,
+}: {
+  insertResults: Array<{ code?: string; message?: string } | null>
+  updateResults: Array<{ message?: string } | null>
+}) {
+  let insertCallIdx = 0
+  let updateCallIdx = 0
+
+  const insertMock = vi.fn().mockImplementation(() => {
+    const error = insertResults[insertCallIdx] ?? null
+    insertCallIdx++
+    return Promise.resolve({ data: null, error })
+  })
+
+  const eqMocks: ReturnType<typeof vi.fn>[] = updateResults.map((updateError) =>
+    vi.fn().mockResolvedValue({ data: null, error: updateError })
+  )
+
+  const updateMock = vi.fn().mockImplementation(() => {
+    const idx = updateCallIdx
+    updateCallIdx++
+    return { eq: eqMocks[idx] ?? eqMocks[eqMocks.length - 1] }
+  })
+
+  const fromMock = vi.fn((table: string) => {
+    if (table === 'processed_webhooks') {
+      return { insert: insertMock }
+    }
+    if (table === 'articles') {
+      return { update: updateMock }
+    }
+    return {}
+  })
+
+  return {
+    from: fromMock,
+    _mocks: { insertMock, updateMock, eqMocks, fromMock },
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -311,5 +358,159 @@ describe('POST /api/webhooks/helius', () => {
 
     // No DB calls should have been made
     expect(mockClient._mocks.fromMock).not.toHaveBeenCalled()
+  })
+
+  // ---------------------------------------------------------------------------
+  // GAP closure tests: batch processing and field validation
+  // ---------------------------------------------------------------------------
+
+  test('batch: tx1 duplicate (23505) + tx2 new processes tx2 and returns 200', async () => {
+    const killedEvent1 = makeArticleKilledEvent()
+    const killedEvent2 = makeArticleKilledEvent({
+      article_id: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    })
+    // parseLogs returns event for each tx
+    mockParseLogs
+      .mockReturnValueOnce([killedEvent1])
+      .mockReturnValueOnce([killedEvent2])
+
+    // tx1 insert gets 23505 duplicate, tx2 insert + update succeed
+    const mockClient = makeMultiTxAdminClient({
+      insertResults: [{ code: '23505', message: 'duplicate key' }, null],
+      updateResults: [null],
+    })
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [makeTx('sig-batch-tx1'), makeTx('sig-batch-tx2')],
+    })
+
+    const response = await POST(request)
+    // Must NOT early-return — tx2 should still be processed
+    expect(response.status).toBe(200)
+
+    // insert called twice (both txs attempted)
+    expect(mockClient._mocks.insertMock).toHaveBeenCalledTimes(2)
+
+    // update called once for tx2 (tx1 was duplicate, skipped)
+    expect(mockClient._mocks.updateMock).toHaveBeenCalledTimes(1)
+  })
+
+  test('batch: tx1 success + tx2 update fail returns 200 (partial success)', async () => {
+    const killedEvent1 = makeArticleKilledEvent()
+    const killedEvent2 = makeArticleKilledEvent({
+      article_id: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    })
+    mockParseLogs
+      .mockReturnValueOnce([killedEvent1])
+      .mockReturnValueOnce([killedEvent2])
+
+    // Both inserts succeed; tx1 update succeeds, tx2 update fails
+    const mockClient = makeMultiTxAdminClient({
+      insertResults: [null, null],
+      updateResults: [null, { message: 'connection timeout' }],
+    })
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [makeTx('sig-partial-tx1'), makeTx('sig-partial-tx2')],
+    })
+
+    const response = await POST(request)
+    // tx1 was processed successfully — should return 200, not 500
+    expect(response.status).toBe(200)
+    expect(mockClient._mocks.updateMock).toHaveBeenCalledTimes(2)
+  })
+
+  test('batch: all txs update fail returns 500 to trigger Helius retry', async () => {
+    const killedEvent1 = makeArticleKilledEvent()
+    const killedEvent2 = makeArticleKilledEvent({
+      article_id: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    })
+    mockParseLogs
+      .mockReturnValueOnce([killedEvent1])
+      .mockReturnValueOnce([killedEvent2])
+
+    // Both inserts succeed but both updates fail
+    const mockClient = makeMultiTxAdminClient({
+      insertResults: [null, null],
+      updateResults: [{ message: 'db error' }, { message: 'db error' }],
+    })
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [makeTx('sig-all-fail-tx1'), makeTx('sig-all-fail-tx2')],
+    })
+
+    const response = await POST(request)
+    // All txs failed — should return 500
+    expect(response.status).toBe(500)
+  })
+
+  test('null timestamp: skips tx gracefully, returns 200, no update called', async () => {
+    const killedEvent = makeArticleKilledEvent({ timestamp: null })
+    mockParseLogs.mockReturnValue([killedEvent])
+
+    const mockClient = makeAdminClient({})
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [makeTx('sig-null-timestamp')],
+    })
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+    // No update should have been called — tx was skipped
+    expect(mockClient._mocks.updateMock).not.toHaveBeenCalled()
+  })
+
+  test('undefined amount: skips tx gracefully, returns 200, no update called', async () => {
+    const killedEvent = makeArticleKilledEvent({ amount: undefined })
+    mockParseLogs.mockReturnValue([killedEvent])
+
+    const mockClient = makeAdminClient({})
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [makeTx('sig-undefined-amount')],
+    })
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+    expect(mockClient._mocks.updateMock).not.toHaveBeenCalled()
+  })
+
+  test('null article_id: skips tx gracefully, returns 200, no update called', async () => {
+    const killedEvent = makeArticleKilledEvent({ article_id: null })
+    mockParseLogs.mockReturnValue([killedEvent])
+
+    const mockClient = makeAdminClient({})
+    vi.mocked(createAdminClient).mockReturnValue(
+      mockClient as unknown as ReturnType<typeof createAdminClient>
+    )
+
+    const request = makeRequest({
+      authorization: 'test-secret-token',
+      body: [makeTx('sig-null-article-id')],
+    })
+
+    const response = await POST(request)
+    expect(response.status).toBe(200)
+    expect(mockClient._mocks.updateMock).not.toHaveBeenCalled()
   })
 })
