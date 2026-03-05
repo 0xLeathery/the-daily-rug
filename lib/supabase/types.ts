@@ -25,6 +25,11 @@ export type Article = {
   author_id: string | null
   created_at: string
   updated_at: string
+  // Phase 6: burn detail fields (null until article is burned)
+  burned_by: string | null
+  burned_amount: number | null
+  burn_tx: string | null
+  burned_at: string | null
 }
 
 export type ApiKey = {
@@ -74,6 +79,10 @@ export type Database = {
           author_id?: string | null
           created_at?: string
           updated_at?: string
+          burned_by?: string | null
+          burned_amount?: number | null
+          burn_tx?: string | null
+          burned_at?: string | null
         }
         Update: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>>
         Relationships: [

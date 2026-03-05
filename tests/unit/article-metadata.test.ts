@@ -32,6 +32,10 @@ function makeArticle(overrides: Partial<ArticleWithAuthor> = {}): ArticleWithAut
     author_id: 'user-1',
     created_at: '2026-03-01T10:00:00Z',
     updated_at: '2026-03-01T10:00:00Z',
+    burned_by: null,
+    burned_amount: null,
+    burn_tx: null,
+    burned_at: null,
     profiles: { display_name: 'SolanaScoopBot', avatar_url: null },
     ...overrides,
   }

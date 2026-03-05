@@ -29,6 +29,10 @@ const baseArticle: ArticleWithAuthor = {
   author_id: 'user-1',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
+  burned_by: null,
+  burned_amount: null,
+  burn_tx: null,
+  burned_at: null,
   profiles: { display_name: 'Jane Doe', avatar_url: null },
 }
 
