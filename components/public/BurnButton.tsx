@@ -122,7 +122,7 @@ export function BurnButton({
   if (state.phase === 'confirming') {
     return (
       <div className="fixed inset-0 z-50 bg-brand-black/90 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-brand-black border-2 border-brand-red p-8 max-w-md w-full">
+        <div className="bg-brand-black border-2 border-brand-red p-6 sm:p-8 max-w-md w-full">
           <h2 className="font-display text-brand-red text-2xl uppercase tracking-widest mb-4">
             BURN {formattedPrice} TO REDACT
           </h2>
@@ -133,7 +133,7 @@ export function BurnButton({
           <p className="text-brand-white/50 font-mono text-xs mb-8 italic">
             &ldquo;{articleTitle}&rdquo;
           </p>
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               onClick={handleConfirm}
               className="flex-1 bg-brand-red text-brand-white font-display font-bold uppercase tracking-widest py-3 px-6 hover:opacity-90 transition-opacity"

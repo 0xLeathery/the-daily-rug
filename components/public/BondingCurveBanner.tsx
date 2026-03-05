@@ -100,7 +100,7 @@ export default function BondingCurveBanner() {
     const displayPercent = percent.toFixed(1)
     return (
       <div className="w-full border-b border-brand-yellow/30 bg-brand-black px-4 py-2">
-        <p className="font-display font-bold uppercase tracking-widest text-xs text-brand-yellow text-center mb-1.5">
+        <p className="font-display font-bold uppercase tracking-widest text-xs text-brand-yellow text-center mb-1.5 leading-snug">
           We are {displayPercent}% of the way to PumpSwap graduation
         </p>
         <div className="relative h-1.5 w-full max-w-2xl mx-auto overflow-hidden rounded-none bg-brand-white/10">
