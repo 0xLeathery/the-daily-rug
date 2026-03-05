@@ -60,8 +60,9 @@ export async function middleware(request: NextRequest) {
       const claims = decodeJwt(session.access_token)
       const role = claims.user_role as string | undefined
 
-      if (role !== 'admin') {
-        // Non-admin authenticated user: rewrite to /not-found.
+      const allowedRoles = ['admin', 'editor']
+      if (!allowedRoles.includes(role ?? '')) {
+        // Non-allowed role authenticated user: rewrite to /not-found.
         // Using rewrite (not redirect) keeps the URL unchanged — user doesn't learn about admin routes.
         return NextResponse.rewrite(new URL('/not-found', request.url))
       }

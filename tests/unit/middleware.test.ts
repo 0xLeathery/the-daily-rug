@@ -50,3 +50,57 @@ describe('JWT role extraction (middleware logic)', () => {
     expect(role === 'admin').toBe(false)
   })
 })
+
+describe('Editor role middleware behavior', () => {
+  // The allowedRoles list is what controls /admin access after middleware.ts is updated.
+  // These tests verify the allowlist logic in isolation before and after the update.
+  const allowedRoles = ['admin', 'editor']
+
+  it('editor role is included in the allowedRoles list', () => {
+    expect(allowedRoles.includes('editor')).toBe(true)
+  })
+
+  it('admin role is included in the allowedRoles list', () => {
+    expect(allowedRoles.includes('admin')).toBe(true)
+  })
+
+  it('agent role is NOT included in the allowedRoles list', () => {
+    expect(allowedRoles.includes('agent')).toBe(false)
+  })
+
+  it('undefined role is NOT included in the allowedRoles list', () => {
+    expect(allowedRoles.includes(undefined as unknown as string)).toBe(false)
+  })
+
+  it('empty string role is NOT included in the allowedRoles list', () => {
+    expect(allowedRoles.includes('')).toBe(false)
+  })
+
+  it('editor role decodes correctly from JWT and passes allowedRoles check', () => {
+    const token = fakeJwt({ user_role: 'editor', sub: 'user-456' })
+    const claims = decodeJwt(token)
+    const role = claims.user_role as string | undefined
+    expect(allowedRoles.includes(role ?? '')).toBe(true)
+  })
+
+  it('admin role decodes correctly from JWT and passes allowedRoles check', () => {
+    const token = fakeJwt({ user_role: 'admin', sub: 'user-123' })
+    const claims = decodeJwt(token)
+    const role = claims.user_role as string | undefined
+    expect(allowedRoles.includes(role ?? '')).toBe(true)
+  })
+
+  it('agent role decodes from JWT and is blocked by allowedRoles check', () => {
+    const token = fakeJwt({ user_role: 'agent', sub: 'user-789' })
+    const claims = decodeJwt(token)
+    const role = claims.user_role as string | undefined
+    expect(allowedRoles.includes(role ?? '')).toBe(false)
+  })
+
+  it('no role claim is blocked by allowedRoles check', () => {
+    const token = fakeJwt({ sub: 'user-000' })
+    const claims = decodeJwt(token)
+    const role = claims.user_role as string | undefined
+    expect(allowedRoles.includes(role ?? '')).toBe(false)
+  })
+})
