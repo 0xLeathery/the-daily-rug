@@ -22,17 +22,11 @@
       "accounts": [
         {
           "name": "burner",
-          "docs": [
-            "The wallet initiating the burn (pays for PDA rent)"
-          ],
           "writable": true,
           "signer": true
         },
         {
           "name": "burner_token_account",
-          "docs": [
-            "Caller's token account - must hold >= 100K tokens"
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -123,16 +117,36 @@
         },
         {
           "name": "mint",
-          "docs": [
-            "The SPL token mint being burned"
-          ],
           "writable": true
         },
         {
-          "name": "article_burn_record",
+          "name": "burn_config",
           "docs": [
-            "PDA keyed to article_id - prevents double-burn via init constraint"
+            "BurnConfig PDA — validates allowed mint and minimum burn amount"
           ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  114,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "article_burn_record",
           "writable": true,
           "pda": {
             "seeds": [
@@ -188,6 +202,72 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "initialize_config",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "docs": [
+            "Admin wallet that pays for PDA creation and becomes the config authority"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "burn_config",
+          "docs": [
+            "BurnConfig PDA — init constraint means it can only be created once"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  114,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "allowed_mint",
+          "docs": [
+            "The SPL mint to pin as the only allowed burn token"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "min_burn_amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -202,6 +282,19 @@
         220,
         174,
         201
+      ]
+    },
+    {
+      "name": "BurnConfig",
+      "discriminator": [
+        90,
+        69,
+        15,
+        87,
+        119,
+        190,
+        109,
+        45
       ]
     }
   ],
@@ -225,6 +318,16 @@
       "code": 6000,
       "name": "InsufficientTokenBalance",
       "msg": "Wallet must hold at least 100,000 tokens to burn an article"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidMint",
+      "msg": "Token mint does not match the allowed mint in BurnConfig"
+    },
+    {
+      "code": 6002,
+      "name": "BurnAmountTooLow",
+      "msg": "Burn amount is below the minimum required by BurnConfig"
     }
   ],
   "types": [
@@ -294,6 +397,30 @@
           {
             "name": "mint",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BurnConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "allowed_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "min_burn_amount",
+            "type": "u64"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
