@@ -79,8 +79,7 @@ export async function POST(request: Request): Promise<Response> {
     // Extract event fields
     const articleId = bytesToUUID(killedEvent.data.article_id as number[])
     const burnerWallet = (killedEvent.data.burner as { toString(): string }).toString()
-    // Keep as string for BIGINT safety — Supabase accepts string for bigint columns
-    const amountBurned = (killedEvent.data.amount as { toString(): string }).toString()
+    const amountBurned = (killedEvent.data.amount as { toNumber(): number }).toNumber()
     const timestamp = new Date(
       (killedEvent.data.timestamp as { toNumber(): number }).toNumber() * 1000
     ).toISOString()
