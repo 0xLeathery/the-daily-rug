@@ -2,7 +2,8 @@ export type UserRole = 'admin' | 'editor' | 'agent'
 
 export type ArticleStatus = 'draft' | 'pending_review' | 'published' | 'redacted'
 
-export interface Profile {
+// Use `type` (not `interface`) so these satisfy Record<string, unknown> for Supabase GenericTable
+export type Profile = {
   id: string
   role: UserRole
   display_name: string | null
@@ -11,7 +12,7 @@ export interface Profile {
   created_at: string
 }
 
-export interface Article {
+export type Article = {
   id: string
   title: string
   slug: string
@@ -26,7 +27,7 @@ export interface Article {
   updated_at: string
 }
 
-export interface ApiKey {
+export type ApiKey = {
   id: string
   profile_id: string
   name: string
@@ -38,30 +39,52 @@ export interface ApiKey {
   is_active: boolean
 }
 
-export interface ProcessedWebhook {
+export type ProcessedWebhook = {
   id: string
   webhook_id: string
   payload: Record<string, unknown> | null
   processed_at: string
 }
 
-// Supabase Database type for typed client queries
-export interface Database {
+// Supabase Database type for typed client queries.
+// Row types must use `type` aliases (not interfaces) so they satisfy
+// Record<string, unknown> — required for @supabase/postgrest-js GenericTable.
+// Tables require Relationships[] for GenericTable compatibility.
+export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Profile
         Insert: Omit<Profile, 'created_at'> & { created_at?: string }
         Update: Partial<Omit<Profile, 'id' | 'created_at'>>
+        Relationships: []
       }
       articles: {
         Row: Article
-        Insert: Omit<Article, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: {
           id?: string
+          title: string
+          slug: string
+          body: string
+          status?: ArticleStatus
+          burn_price?: number | null
+          published_at?: string | null
+          alpha_gate_until?: string | null
+          cover_image_url?: string | null
+          author_id?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: Partial<Omit<Article, 'id' | 'created_at' | 'updated_at'>>
+        Relationships: [
+          {
+            foreignKeyName: 'articles_author_id_fkey'
+            columns: ['author_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
       }
       api_keys: {
         Row: ApiKey
@@ -71,6 +94,15 @@ export interface Database {
           last_used_at?: string | null
         }
         Update: Partial<Omit<ApiKey, 'id' | 'profile_id' | 'created_at'>>
+        Relationships: [
+          {
+            foreignKeyName: 'api_keys_profile_id_fkey'
+            columns: ['profile_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
       }
       processed_webhooks: {
         Row: ProcessedWebhook
@@ -79,7 +111,11 @@ export interface Database {
           processed_at?: string
         }
         Update: Partial<Omit<ProcessedWebhook, 'id' | 'processed_at'>>
+        Relationships: []
       }
+    }
+    Views: {
+      [_ in never]: never
     }
     Functions: {
       get_my_role: {
@@ -102,6 +138,12 @@ export interface Database {
         }
         Returns: { is_valid: boolean; profile_id: string; key_id: string }[]
       }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
