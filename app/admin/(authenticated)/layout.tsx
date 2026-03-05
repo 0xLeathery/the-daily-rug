@@ -16,12 +16,14 @@ export default async function AdminLayout({
   }
 
   return (
-    <div>
-      <nav style={{ padding: '12px 20px', borderBottom: '1px solid #ccc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <strong>The Daily Rug - Admin</strong>
-        <span>{user.email}</span>
+    <div className="min-h-screen bg-brand-black">
+      <nav className="bg-brand-black border-b-2 border-brand-red px-4 py-3 flex justify-between items-center">
+        <strong className="font-display font-bold text-brand-yellow uppercase tracking-tight text-lg">
+          THE DAILY RUG &mdash; ADMIN
+        </strong>
+        <span className="text-brand-white text-sm">{user.email}</span>
       </nav>
-      <main style={{ padding: 20 }}>
+      <main className="p-6">
         {children}
       </main>
     </div>
