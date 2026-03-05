@@ -1,5 +1,5 @@
 import 'server-only'
-import { EventParser, BorshCoder } from '@coral-xyz/anchor'
+import { EventParser, BorshCoder, type Idl } from '@coral-xyz/anchor'
 import { PublicKey } from '@solana/web3.js'
 import { createAdminClient } from '@/lib/supabase/server'
 import idl from '@/anchor/target/idl/burn_for_article.json'
@@ -10,7 +10,7 @@ import { bytesToUUID } from '@/lib/burn/utils'
 // ---------------------------------------------------------------------------
 
 const PROGRAM_ID = new PublicKey('DPJfqPk8yu6Fzu2aUQLY2DvFCPmhJ4zkZa2G8ZjKNeQW')
-const coder = new BorshCoder(idl as Parameters<typeof BorshCoder>[0])
+const coder = new BorshCoder(idl as Idl)
 const eventParser = new EventParser(PROGRAM_ID, coder)
 
 // ---------------------------------------------------------------------------
