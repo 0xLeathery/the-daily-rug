@@ -5,42 +5,16 @@ import WalletArea from "@/components/layout/WalletArea";
 
 export default function SiteHeader() {
   return (
-    <header
-      className="w-full flex justify-between items-center px-4 py-3"
-      style={{
-        backgroundColor: "#0a0a0a",
-        borderBottom: "3px solid #cc0000",
-      }}
-    >
+    <header className="w-full flex justify-between items-center px-4 py-3 bg-brand-black border-b-[3px] border-brand-red">
       {/* Site name -- left side */}
       <div className="flex flex-col">
         <Link
           href="/"
-          className="no-underline"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 900,
-            fontSize: "clamp(1.25rem, 3vw, 1.75rem)",
-            color: "#ffd700",
-            textTransform: "uppercase",
-            letterSpacing: "-0.02em",
-            lineHeight: 1,
-            textDecoration: "none",
-          }}
+          className="font-display font-bold text-brand-yellow uppercase tracking-tight leading-none text-[clamp(1.25rem,3vw,1.75rem)] no-underline"
         >
           THE DAILY RUG
         </Link>
-        <span
-          className="mt-0.5"
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 600,
-            fontSize: "0.65rem",
-            color: "#cc0000",
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-          }}
-        >
+        <span className="mt-0.5 font-display font-semibold text-[0.65rem] text-brand-red uppercase tracking-widest">
           WHERE WHALES SILENCE THE ALPHA
         </span>
       </div>
