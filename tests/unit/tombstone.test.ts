@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { truncateAddress, formatBalance } from '@/lib/utils/format'
+import { pickVariant } from '@/components/public/TombstoneGraphic'
 
 /**
  * Tombstone Burn Credit tests.
@@ -83,5 +84,61 @@ describe('Tombstone Burn Credit', () => {
       const credit = renderBurnCredit('SoLAnAWaLLeTaDDrESSoNeSoLAnA123', 2_000_000)
       expect(credit).toBe('Burned by SoLA...A123 for 2.0M tokens')
     })
+  })
+})
+
+describe('pickVariant determinism', () => {
+  it('returns same value for the same seed string', () => {
+    const v1 = pickVariant('abc-123-article-id', 3)
+    const v2 = pickVariant('abc-123-article-id', 3)
+    expect(v1).toBe(v2)
+  })
+
+  it('returns 0 when seed is undefined', () => {
+    expect(pickVariant(undefined, 3)).toBe(0)
+  })
+
+  it('returns a value in range [0, count-1]', () => {
+    const seeds = ['article-1', 'article-2', 'zzz', 'aaa', 'UUID-test-12345', '']
+    for (const seed of seeds) {
+      const v = pickVariant(seed, 3)
+      expect(v).toBeGreaterThanOrEqual(0)
+      expect(v).toBeLessThanOrEqual(2)
+    }
+  })
+
+  it('distributes across different seeds', () => {
+    // With enough different seeds, we should see more than one variant
+    const seeds = Array.from({ length: 20 }, (_, i) => `article-id-${i}`)
+    const variants = new Set(seeds.map((s) => pickVariant(s, 3)))
+    expect(variants.size).toBeGreaterThan(1)
+  })
+
+  it('returns 0 when count is 1', () => {
+    expect(pickVariant('any-seed', 1)).toBe(0)
+  })
+})
+
+describe('TombstoneGraphic variants', () => {
+  // These are smoke tests that verify the variant functions are callable and return
+  // something truthy. No jsdom needed — we test the exported pickVariant logic only,
+  // and verify the component module loads without throwing.
+  it('pickVariant returns a number for any UUID-like seed', () => {
+    const result = pickVariant('550e8400-e29b-41d4-a716-446655440000', 3)
+    expect(typeof result).toBe('number')
+  })
+
+  it('pickVariant is deterministic across 100 calls', () => {
+    const seed = '550e8400-e29b-41d4-a716-446655440000'
+    const first = pickVariant(seed, 3)
+    for (let i = 0; i < 99; i++) {
+      expect(pickVariant(seed, 3)).toBe(first)
+    }
+  })
+
+  it('variant index 0 is always produced by summing to a multiple of count', () => {
+    // Build a seed whose char codes sum to exactly a multiple of 3
+    // 'a' = 97, need multiple of 3: 99 = 3*33, so 'ccc' (99+99+99 = 297, 297 % 3 = 0)
+    expect(pickVariant('ccc', 3)).toBe(0)
   })
 })
