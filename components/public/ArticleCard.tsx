@@ -39,6 +39,15 @@ export default function ArticleCard({ article }: ArticleCardProps) {
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : null}
+        {isRedacted && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="-rotate-12 border-[3px] border-brand-red px-3 py-1">
+              <span className="font-display font-bold text-brand-red uppercase tracking-widest text-lg">
+                REDACTED
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Card body */}

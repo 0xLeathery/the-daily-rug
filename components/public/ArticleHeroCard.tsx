@@ -44,6 +44,17 @@ export default function ArticleHeroCard({ article }: ArticleHeroCardProps) {
         {/* Gradient overlay for text legibility */}
         <div className="absolute inset-0 bg-gradient-to-t from-brand-black/90 via-brand-black/30 to-transparent" />
 
+        {/* REDACTED stamp overlay for redacted articles */}
+        {isRedacted && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div className="-rotate-12 border-4 border-brand-red px-6 py-2">
+              <span className="font-display font-bold text-brand-red uppercase tracking-widest text-4xl">
+                REDACTED
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Text overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
           <div className="mb-3">

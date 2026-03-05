@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/browser'
 import { BurnButton } from '@/components/public/BurnButton'
+import { TombstoneGraphic } from '@/components/public/TombstoneGraphic'
 import { truncateAddress, formatBalance } from '@/lib/utils/format'
 import type { ArticleStatus } from '@/lib/supabase/types'
 import Link from 'next/link'
@@ -86,12 +87,13 @@ export function ArticleLiveWrapper({
   if (showTombstone) {
     return (
       <div style={{ animation: 'burn-reveal 0.5s ease-out' }}>
-        <div className="border-4 border-brand-red p-8 text-center mt-8">
-          <h2 className="font-display font-bold uppercase text-brand-red text-6xl tracking-widest mb-4">
-            REDACTED
+        <div className="text-center mt-8">
+          <TombstoneGraphic seed={articleId} className="w-full max-w-xs mx-auto" />
+          <h2 className="font-display font-bold uppercase text-brand-red text-5xl tracking-widest mb-4 mt-6">
+            REDACTED BY WHALE
           </h2>
           <p className="text-brand-white/70 font-mono text-lg mb-4">
-            This story was silenced by a whale.
+            This story was silenced. The truth died here.
           </p>
           {burnedBy && (
             <p className="text-brand-white/50 font-mono text-sm mt-4">

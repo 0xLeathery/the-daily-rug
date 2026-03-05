@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { getArticleBySlug } from '@/lib/supabase/articles'
 import { ArticleGate } from '@/components/public/ArticleGate'
 import { ArticleLiveWrapper } from '@/components/public/ArticleLiveWrapper'
+import { TombstoneGraphic } from '@/components/public/TombstoneGraphic'
 import { truncateAddress, formatBalance } from '@/lib/utils/format'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -56,23 +57,24 @@ export default async function ArticlePage({ params }: Props) {
   if (article.status === 'redacted') {
     return (
       <main className="min-h-screen bg-brand-black flex items-center justify-center p-8">
-        <div className="max-w-lg w-full border-4 border-brand-red p-8 text-center">
-          <h1 className="font-display font-bold uppercase text-brand-red text-6xl tracking-widest mb-4">
-            REDACTED
+        <div className="max-w-lg w-full text-center">
+          <TombstoneGraphic seed={article.id} />
+          <h1 className="font-display font-bold uppercase text-brand-red text-5xl tracking-widest mb-4 mt-6">
+            REDACTED BY WHALE
           </h1>
-          <p className="text-brand-white/70 font-mono text-lg mb-8">
-            This story was silenced by a whale.
+          <p className="text-brand-white/70 font-mono text-base mb-6">
+            This story was silenced. The truth died here.
           </p>
           {article.burned_by && (
-            <p className="text-brand-white/50 font-mono text-sm mt-4 mb-8">
-              Burned by {truncateAddress(article.burned_by)} for {formatBalance(article.burned_amount ?? 0)} tokens
+            <p className="text-brand-white/40 font-mono text-sm mb-8">
+              Killed by {truncateAddress(article.burned_by)} for {formatBalance(article.burned_amount ?? 0)} tokens
             </p>
           )}
           <Link
             href="/"
-            className="text-brand-yellow font-mono text-sm hover:underline"
+            className="inline-block bg-brand-yellow text-brand-black font-display font-black uppercase tracking-wider px-8 py-3 hover:bg-yellow-400 transition-colors"
           >
-            &larr; Back to The Daily Rug
+            BACK TO THE RUG
           </Link>
         </div>
       </main>
