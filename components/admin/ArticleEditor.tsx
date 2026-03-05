@@ -50,9 +50,8 @@ export default function ArticleEditor({ article, userRole }: ArticleEditorProps)
           { value: 'pending_review', label: 'PENDING REVIEW' },
         ]
 
-  // Show fact-check gate when targeting published status or article is already published
-  const showFactCheckGate =
-    status === 'published' || savedArticle?.status === 'published'
+  // Always show fact-check gate — it's a publish prerequisite users need to see
+  const showFactCheckGate = true
 
   // Publish button conditions
   const burnPriceNum = parseFloat(burnPrice)
