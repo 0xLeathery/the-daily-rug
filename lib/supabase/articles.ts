@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Article, Profile } from '@/lib/supabase/types'
 
 export type ArticleWithAuthor = Article & {
-  profiles: Pick<Profile, 'display_name' | 'avatar_url'> | null
+  profiles: Pick<Profile, 'display_name' | 'avatar_url' | 'is_agent'> | null
 }
 
 /**
@@ -14,7 +14,7 @@ export async function getPublishedArticles(): Promise<ArticleWithAuthor[]> {
   const client = await createClient()
   const { data, error } = await client
     .from('articles')
-    .select('*, profiles!author_id(display_name, avatar_url)')
+    .select('*, profiles!author_id(display_name, avatar_url, is_agent)')
     .in('status', ['published', 'redacted'])
     .order('published_at', { ascending: false })
 
@@ -30,7 +30,7 @@ export async function getArticleBySlug(slug: string): Promise<ArticleWithAuthor 
   const client = await createClient()
   const { data, error } = await client
     .from('articles')
-    .select('*, profiles!author_id(display_name, avatar_url)')
+    .select('*, profiles!author_id(display_name, avatar_url, is_agent)')
     .eq('slug', slug)
     .in('status', ['published', 'redacted'])
     .single()

@@ -111,10 +111,30 @@ export default async function ArticlePage({ params }: Props) {
           {article.title}
         </h1>
 
-        {/* Meta line: author + date */}
+        {/* Meta line: author (avatar + name + badge) + date */}
         <div className="flex flex-wrap gap-4 items-center text-brand-white/60 font-mono text-sm mb-8">
           {article.profiles?.display_name && (
-            <span>Written by: {article.profiles.display_name}</span>
+            <div className="flex items-center gap-2">
+              {article.profiles.avatar_url && (
+                <Image
+                  src={article.profiles.avatar_url}
+                  alt={article.profiles.display_name}
+                  width={24}
+                  height={24}
+                  className="rounded-full object-cover"
+                />
+              )}
+              <span>Written by: {article.profiles.display_name}</span>
+              {article.profiles.is_agent ? (
+                <span className="bg-brand-red/20 text-brand-red font-mono text-xs px-2 py-0.5 uppercase tracking-wider">
+                  AI
+                </span>
+              ) : (
+                <span className="bg-brand-white/10 text-brand-white/60 font-mono text-xs px-2 py-0.5 uppercase tracking-wider">
+                  HUMAN
+                </span>
+              )}
+            </div>
           )}
           {publishedDate && <span>{publishedDate}</span>}
         </div>
