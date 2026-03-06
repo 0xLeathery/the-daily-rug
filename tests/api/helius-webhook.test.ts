@@ -75,7 +75,7 @@ function makeArticleKilledEvent(overrides: Record<string, unknown> = {}) {
     data: {
       article_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
       burner: { toString: () => 'BurnerWallet111111111111111111111111111111111' },
-      amount: { toString: () => '500000000' }, // BN-like
+      amount: { toNumber: () => 500000000 }, // BN-like — matches route's .toNumber() call
       timestamp: { toNumber: () => 1740000000 }, // BN-like
       mint: { toString: () => 'MintAddress111111111111111111111111111111111' },
       ...overrides,
@@ -258,7 +258,7 @@ describe('POST /api/webhooks/helius', () => {
     expect(mockClient._mocks.updateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         burned_by: 'BurnerWallet111111111111111111111111111111111',
-        burned_amount: '500000000',
+        burned_amount: 500000000,
         burn_tx: 'sig-details-test',
         burned_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/), // ISO timestamp
       })
