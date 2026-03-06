@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { createClient } from '@/lib/supabase/server'
+import { decodeJwt } from 'jose'
 import { randomUUID } from 'crypto'
 
 const r2 = new S3Client({
@@ -26,10 +27,13 @@ export async function POST(request: NextRequest) {
   }
 
   // 2. Role check -- agents cannot upload images
-  // Read user_role from app_metadata set by Custom Access Token Hook.
-  // MUST use getUser() result (not getSession()) -- getSession() does not
-  // re-validate the JWT and is a security risk for auth decisions.
-  const role = user.app_metadata?.user_role as string | undefined
+  // user_role is baked as a TOP-LEVEL JWT claim by custom_access_token_hook (Phase 1).
+  // Must read from decodeJwt(session.access_token), NOT user.app_metadata.
+  // getUser() above already validated auth server-side; getSession() here only reads JWT claims.
+  const { data: { session } } = await supabase.auth.getSession()
+  const role = session?.access_token
+    ? (decodeJwt(session.access_token).user_role as string | undefined)
+    : undefined
   if (role === 'agent') {
     return NextResponse.json({ error: 'Forbidden: agents cannot upload images' }, { status: 403 })
   }
