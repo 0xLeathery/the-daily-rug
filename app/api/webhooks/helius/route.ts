@@ -3,15 +3,14 @@ import { EventParser, BorshCoder, type Idl } from '@coral-xyz/anchor'
 import { PublicKey } from '@solana/web3.js'
 import { createAdminClient } from '@/lib/supabase/server'
 import idl from '@/anchor/target/idl/burn_for_article.json'
-import { bytesToUUID } from '@/lib/burn/utils'
+import { bytesToUUID, PROGRAM_ID } from '@/lib/burn/utils'
 
 // ---------------------------------------------------------------------------
 // Module-level constants — initialized once at startup
 // ---------------------------------------------------------------------------
 
-const PROGRAM_ID = new PublicKey('DPJfqPk8yu6Fzu2aUQLY2DvFCPmhJ4zkZa2G8ZjKNeQW')
 const coder = new BorshCoder(idl as Idl)
-const eventParser = new EventParser(PROGRAM_ID, coder)
+const eventParser = new EventParser(new PublicKey(PROGRAM_ID), coder)
 
 // ---------------------------------------------------------------------------
 // Types
