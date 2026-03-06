@@ -33,7 +33,7 @@ const baseArticle: ArticleWithAuthor = {
   burned_amount: null,
   burn_tx: null,
   burned_at: null,
-  profiles: { display_name: 'Jane Doe', avatar_url: null },
+  profiles: { display_name: 'Jane Doe', avatar_url: null, is_agent: false },
 }
 
 const redactedArticle: ArticleWithAuthor = {
@@ -122,6 +122,7 @@ describe('getPublishedArticles', () => {
     expect(capturedSelectArg).toMatch(/profiles/)
     expect(capturedSelectArg).toMatch(/display_name/)
     expect(capturedSelectArg).toMatch(/avatar_url/)
+    expect(capturedSelectArg).toMatch(/is_agent/)
   })
 
   it('returns empty array when no articles exist', async () => {
@@ -164,5 +165,22 @@ describe('getArticleBySlug', () => {
 
     const result = await getArticleBySlug('draft-article')
     expect(result).toBeNull()
+  })
+
+  it('joins profiles via author_id and select string includes is_agent', async () => {
+    let capturedSelectArg = ''
+    const selectResult = makeSelectBuilder(baseArticle)
+    mockFrom.mockReturnValue({
+      select: (arg: string) => {
+        capturedSelectArg = arg
+        return selectResult
+      },
+    })
+
+    await getArticleBySlug('test-article')
+    expect(capturedSelectArg).toMatch(/profiles/)
+    expect(capturedSelectArg).toMatch(/display_name/)
+    expect(capturedSelectArg).toMatch(/avatar_url/)
+    expect(capturedSelectArg).toMatch(/is_agent/)
   })
 })
