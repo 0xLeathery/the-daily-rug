@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: completed
-stopped_at: "Completed 10-01-PLAN.md (loading skeleton + is_agent avatar/badge: INT-03, INT-05 closed)"
-last_updated: "2026-03-06T05:40:03.362Z"
-last_activity: "2026-03-05 — Phase 1 data layer complete: Supabase + R2 provisioned and verified end-to-end"
+milestone_name: MVP
+status: archived
+stopped_at: "v1.0 milestone complete — archived 2026-03-06"
+last_updated: "2026-03-06"
+last_activity: "2026-03-06 — v1.0 MVP archived: 10 phases, 33 plans, git tag v1.0"
 progress:
   total_phases: 10
   completed_phases: 10
@@ -18,17 +18,17 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-05)
+See: .planning/PROJECT.md (updated 2026-03-06)
 
 **Core value:** The burn-to-redact mechanic must work flawlessly — every token burnt to silence a story is a deflationary event that feeds the narrative and the chart.
-**Current focus:** Phase 1 - Data Layer
+**Current focus:** Planning next milestone — run `/gsd:new-milestone`
 
 ## Current Position
 
-Phase: 1 of 7 (Data Layer) — COMPLETE
-Plan: 5 of 5 in current phase
-Status: Phase 1 complete, ready for Phase 2 (Anchor Program)
-Last activity: 2026-03-05 — Phase 1 data layer complete: Supabase + R2 provisioned and verified end-to-end
+Phase: 10 of 10 (UI Completions) — COMPLETE
+Plan: 1 of 1 in current phase
+Status: v1.0 MVP archived — ready for next milestone
+Last activity: 2026-03-06 — v1.0 MVP complete: 10 phases, 33 plans, git tagged
 
 Progress: [██████████] 100%
 
